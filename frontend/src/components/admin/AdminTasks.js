@@ -9,8 +9,6 @@ const AdminTasks = () => {
     refetchOnMountOrArgChange: true,
   });
 
-  console.log('Tasks data received:', tasksResponse); // Debug log
-
   const [deleteTask, { isLoading: isDeleting }] = useDeleteTaskMutation();
 
   useEffect(() => {
@@ -26,7 +24,6 @@ const AdminTasks = () => {
       try {
         const res = await deleteTask(taskId).unwrap();
         toast.success(res.message || 'Task deleted successfully');
-        // Tasks list will automatically refetch due to invalidated tag
       } catch (err) {
         toast.error(err.data?.message || 'Failed to delete task');
       }
@@ -51,7 +48,6 @@ const AdminTasks = () => {
     );
   }
 
-  // Access the tasks array from the data property of the response
   const tasks = tasksResponse?.data || [];
 
   return (
@@ -66,6 +62,7 @@ const AdminTasks = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Points</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -74,11 +71,34 @@ const AdminTasks = () => {
               {tasks.length > 0 ? (
                 tasks.map((task) => (
                   <tr key={task._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{task.platform || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{task.addedBy?.name || task.addedBy?.email || 'Unknown User'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{task.description || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{task.status || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.type || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.addedBy?.name || task.addedBy?.email || 'Unknown User'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.createdAt ? new Date(task.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {`${task.action} on ${task.type}`}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {task.points || 0} points
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {task.isActive ? (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Button
                         variant="outlined"
@@ -86,7 +106,7 @@ const AdminTasks = () => {
                         size="small"
                         startIcon={<DeleteIcon />}
                         onClick={() => handleDelete(task._id)}
-                        disabled={isDeleting} // Disable button while deleting
+                        disabled={isDeleting}
                       >
                         Delete
                       </Button>
@@ -95,7 +115,7 @@ const AdminTasks = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
                     No tasks found
                   </td>
                 </tr>

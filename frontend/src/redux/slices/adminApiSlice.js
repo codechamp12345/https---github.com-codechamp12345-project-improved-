@@ -4,12 +4,9 @@ const baseQuery = fetchBaseQuery({
   baseUrl: 'http://localhost:5000/api/v1/admin',
   prepareHeaders: (headers, { getState }) => {
     const token = localStorage.getItem('adminToken');
-    console.log('Token in prepareHeaders:', token); // Debug log
-    
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    
     return headers;
   },
   credentials: 'include',
@@ -17,10 +14,8 @@ const baseQuery = fetchBaseQuery({
 
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
-  console.log('API Response:', result); // Debug log
 
   if (result.error) {
-    console.error('API Error:', result.error); // Debug log
     // Handle token expiration
     if (result.error.status === 401) {
       const errorMessage = result.error.data?.message || '';
@@ -69,14 +64,12 @@ export const adminApiSlice = createApi({
       providesTags: ['Admin'],
       keepUnusedDataFor: 30,
       transformResponse: (response) => {
-        console.log('Contacts API Response:', response);
         if (!response.success) {
           throw new Error(response.message || 'Failed to fetch contacts');
         }
         return response;
       },
       transformErrorResponse: (response) => {
-        console.error('Contacts API Error:', response);
         return {
           status: response.status,
           data: {

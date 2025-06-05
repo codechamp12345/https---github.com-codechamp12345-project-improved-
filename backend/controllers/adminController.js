@@ -58,7 +58,6 @@ export const adminLogin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -103,7 +102,6 @@ export const getDashboardData = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Dashboard data error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching dashboard data'
@@ -116,22 +114,17 @@ export const getDashboardData = async (req, res) => {
 // @access  Private/Admin
 export const getTasks = async (req, res) => {
   try {
-    console.log('Accessing getTasks route'); // Debug log
-    console.log('Authenticated user:', req.user?._id, req.user?.role); // Debug log
     const tasks = await Task.find()
       .populate('addedBy', 'name email')
       .populate('completions.userId', 'name email')
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log('Tasks fetched successfully. Count:', tasks.length); // Debug log
-
     res.status(200).json({
       success: true,
       data: tasks || []
     });
   } catch (error) {
-    console.error('Get tasks error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching tasks'
@@ -145,27 +138,22 @@ export const getTasks = async (req, res) => {
 export const deleteTask = async (req, res) => {
   try {
     const taskId = req.params.id;
-    console.log(`Attempting to delete task with ID: ${taskId}`); // Debug log
-
     const task = await Task.findById(taskId);
 
     if (!task) {
-      console.log(`Task not found with ID: ${taskId}`); // Debug log
       return res.status(404).json({
         success: false,
         message: 'Task not found'
       });
     }
 
-    await task.deleteOne(); // Or await task.remove() depending on Mongoose version
+    await task.deleteOne();
 
-    console.log(`Task deleted successfully with ID: ${taskId}`); // Debug log
     res.status(200).json({
       success: true,
       message: 'Task deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting task:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting task'
@@ -199,7 +187,6 @@ export const initializeAdmin = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Initialize admin error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -241,7 +228,6 @@ export const updateUserPoints = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update user points error:', error);
     res.status(500).json({
       success: false,
       message: 'Error updating user points'
@@ -277,7 +263,6 @@ export const getUserTasks = async (req, res) => {
       data: completedTasks
     });
   } catch (error) {
-    console.error('Get user tasks error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching user tasks'

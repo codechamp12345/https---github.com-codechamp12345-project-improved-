@@ -7,9 +7,6 @@ export const createTask = async (req, res) => {
   const { type, action, link, points = 2 } = req.body;
 
   try {
-    // Log the request details
-    console.log('Creating task with:', { type, action, link, points, userId: req.user._id });
-
     // Validate required fields
     if (!type || !action || !link) {
       return res.status(400).json({
@@ -29,17 +26,12 @@ export const createTask = async (req, res) => {
       isActive: true
     });
 
-    // Log the created task
-    console.log('Task created successfully:', task);
-
     res.status(201).json({
       success: true,
       message: 'Task created successfully',
       task
     });
   } catch (error) {
-    console.error('Error creating task:', error);
-
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -57,8 +49,6 @@ export const createTask = async (req, res) => {
 // Get all available tasks for a user
 export const getAllTasks = async (req, res) => {
   try {
-    console.log('Getting tasks for user:', req.user._id);
-
     // Find all active tasks except those created by the current user
     const tasks = await Task.find({ 
       isActive: true,
@@ -66,8 +56,6 @@ export const getAllTasks = async (req, res) => {
     })
       .populate('addedBy', 'name')
       .sort({ points: -1, createdAt: -1 }); // Sort by points (descending) and then by creation date
-
-    console.log('Found tasks:', tasks);
 
     // Filter out tasks that the user has already completed
     const availableTasks = tasks.filter(task => {
@@ -85,16 +73,12 @@ export const getAllTasks = async (req, res) => {
       .populate('addedBy', 'name')
       .sort({ createdAt: -1 });
 
-    console.log('Available tasks:', availableTasks.length);
-    console.log('Own tasks:', ownTasks.length);
-
     res.status(200).json({
       success: true,
       tasks: availableTasks,
       ownTasks: ownTasks
     });
   } catch (error) {
-    console.error('Error fetching tasks:', error);
     res.status(500).json({
       success: false,
       message: 'Internal Server Error while fetching tasks'
@@ -181,7 +165,6 @@ export const completeTask = async (req, res) => {
       session.endSession();
     }
   } catch (error) {
-    console.error('Error completing task:', error);
     res.status(500).json({
       success: false,
       message: 'Error completing task'
@@ -212,7 +195,6 @@ export const deleteTask = async (req, res) => {
       message: 'Task deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting task:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting task'
@@ -232,10 +214,52 @@ export const getAllTasksAdmin = async (req, res) => {
       tasks
     });
   } catch (error) {
-    console.error('Error fetching tasks:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching tasks'
     });
+  }
+};
+
+export const getTasks = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get user and tasks
+    const [user, tasks] = await Promise.all([
+      User.findById(userId).select('points').lean(),
+      Task.find().select('_id type action link addedBy completions').lean()
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Transform and separate own tasks and available tasks
+    const { ownTasks, availableTasks } = tasks.reduce((acc, task) => {
+      const isOwnTask = task.addedBy.toString() === userId.toString();
+      const transformedTask = {
+        _id: task._id,
+        type: task.type,
+        action: task.action,
+        link: task.link
+      };
+
+      if (isOwnTask) {
+        acc.ownTasks.push(transformedTask);
+      } else {
+        acc.availableTasks.push(transformedTask);
+      }
+
+      return acc;
+    }, { ownTasks: [], availableTasks: [] });
+
+    res.json({
+      tasks: availableTasks,
+      ownTasks: ownTasks,
+      points: user.points
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching tasks' });
   }
 };
