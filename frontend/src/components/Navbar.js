@@ -295,13 +295,29 @@ const Navbar = ({ toggleTheme }) => {
 
   const handleLogout = async () => {
     try {
-      await logoutApiCall().unwrap();
+      // First dispatch logout to clear Redux state
       dispatch(logout());
+      // Clear local storage immediately
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('verificationEmail');
+      // Clear any cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      // Close any open menus
       handleProfileMenuClose();
-      navigate("/login");
+      // Navigate to home page
+      navigate("/");
+      // Show success message
       toast.success('Logged Out Successfully');
+      // Then make the API call
+      await logoutApiCall().unwrap();
     } catch (err) {
       console.error(err);
+      // Even if the API call fails, we've already logged out locally
+      toast.success('Logged Out Successfully');
     }
   };
 

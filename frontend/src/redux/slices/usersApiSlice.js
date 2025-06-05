@@ -1,6 +1,7 @@
 import { apiSlice } from "../apiSlice";
+import { logout } from "./authSlice";
 
-export const userApiSlice = apiSlice.injectEndpoints({
+export const usersApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation({
       query: (data) => ({
@@ -9,12 +10,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
-      transformResponse: (response) => {
-        if (response.success) {
-          return { data: response };
-        }
-        throw new Error(response.message || 'Registration failed');
-      },
     }),
     login: builder.mutation({
       query: (data) => ({
@@ -24,88 +19,58 @@ export const userApiSlice = apiSlice.injectEndpoints({
         credentials: "include",
       }),
       transformResponse: (response) => {
-        console.log('Transforming login response:', response);
+        // Check if user is verified before allowing login
+        if (!response.user.isVerified) {
+          return {
+            error: {
+              data: {
+                message: "Please verify your email before logging in"
+              }
+            }
+          };
+        }
         return response;
       },
-      transformErrorResponse: (error) => {
-        console.log('Login error response:', error);
-        return error;
-      },
     }),
-    // verifyEmail: builder.mutation({
-    //   query: (data) => ({
-    //     url: "/verify-email",
-    //     method: "POST",
-    //     body: data,
-    //     credentials: "include",
-    //   }),
-    // }),
-    // resendCode: builder.mutation({
-    //   query: (data) => ({
-    //     url: "/resend-code",
-    //     method: "POST",
-    //     body: data,
-    //     credentials: "include",
-    //   }),
-    // }),
-    // forgotPassword: builder.mutation({
-    //   query: (data) => ({
-    //     url: "/password/forgot",
-    //     method: "POST",
-    //     body: data,
-    //     credentials: "include",
-    //   }),
-    // }),
-    // resetPassword: builder.mutation({
-    //   query: ({ token, password, confirmPassword }) => ({
-    //     url: `/reset-password/${token}`,
-    //     method: "PUT",
-    //     body: { password, confirmPassword },
-    //   }),
-    // }),
-    // updateProfile: builder.mutation({
-    //   query: (data) => ({
-    //     url: `/me/update`,
-    //     method: "PUT",
-    //     body: data,
-    //     credentials: "include",
-    //   }),
-    // }),
-    // updatePassword: builder.mutation({
-    //   query: (data) => ({
-    //     url: `/password/update`,
-    //     method: "PUT",
-    //     body: data,
-    //     credentials: "include",
-    //   }),
-    // }),
-    // getAllUsers: builder.query({
-    //   query: () => ({
-    //     url: `/admin/users`,
-    //     method: "GET",
-    //     credentials: "include",
-    //   }),
-    //   providesTags: ["User"], //when user will be deleted the list will automatically updates
-    // }),
-    // getUserById: builder.query({
-    //   query: ({ id }) => ({
-    //     url: `/admin/user/${id}`,
-    //     method: "GET",
-    //     credentials: "include",
-    //   }),
-    // }),
-    // updateUserRole: builder.mutation({
-    //   query: ({ id, role }) => ({
-    //     url: `admin/user/${id}`,
-    //     method: "PUT",
-    //     body: { role },
-    //     credentials: "include",
-    //   }),
-    //   invalidatesTags: ["User"],
-    // }),
     logout: builder.mutation({
       query: () => ({
         url: "/logout",
+        method: "GET",
+        credentials: "include",
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // Clear the Redux store
+          dispatch(logout());
+          dispatch(apiSlice.util.resetApiState());
+          // Clear all auth-related data from localStorage
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('verificationEmail');
+          // Clear any cookies
+          document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+              .replace(/^ +/, "")
+              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+        } catch (error) {
+          // Even if the API call fails, we should still logout locally
+          dispatch(logout());
+          dispatch(apiSlice.util.resetApiState());
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('verificationEmail');
+          // Clear any cookies
+          document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+              .replace(/^ +/, "")
+              .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+          });
+        }
+      },
+    }),
+    getUser: builder.query({
+      query: () => ({
+        url: "/profile",
         method: "GET",
         credentials: "include",
       }),
@@ -116,15 +81,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
 export const {
   useRegisterMutation,
   useLoginMutation,
-  //   useVerifyEmailMutation,
-  //   useResetPasswordMutation,
-  //   useResendCodeMutation,
-  //   useForgotPasswordMutation,
-  //   useUpdateProfileMutation,
-  //   useUpdatePasswordMutation,
-  //   useGetAllUsersQuery,
-  //   useGetUserByIdQuery,
-  //   useUpdateUserRoleMutation,
-  //   useDeleteUserMutation,
   useLogoutMutation,
-} = userApiSlice;
+  useGetUserQuery,
+} = usersApiSlice;

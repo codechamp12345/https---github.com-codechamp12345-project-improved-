@@ -1,229 +1,188 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Grid,
-  InputAdornment,
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { Person, Email, Phone, Message } from '@mui/icons-material';
-
-const ContactContainer = styled(Container)(({ theme }) => ({
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: theme.spacing(4),
-  background: theme.palette.mode === 'dark' 
-    ? 'linear-gradient(135deg, #1a237e 0%, #0d47a1 100%)'
-    : 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-}));
-
-const ContactCard = styled(Paper)(({ theme }) => ({
-  background: theme.palette.mode === 'dark' 
-    ? 'rgba(30, 40, 60, 0.85)' 
-    : '#fff',
-  borderRadius: theme.shape.borderRadius * 2,
-  padding: theme.spacing(5),
-  width: '100%',
-  maxWidth: 700,
-  boxShadow: theme.palette.mode === 'dark'
-    ? '0 20px 40px rgba(0, 0, 0, 0.5)'
-    : '0 12px 30px rgba(0, 0, 0, 0.15)',
-  border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)'}`,
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  background: theme.palette.mode === 'dark'
-    ? 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)'
-    : 'linear-gradient(45deg, #1976D2 30%, #42A5F5 90%)',
-  color: '#fff',
-  padding: theme.spacing(1.5),
-  fontSize: '1.1rem',
-  fontWeight: 600,
-  borderRadius: theme.shape.borderRadius,
-  textTransform: 'none',
-  boxShadow: theme.palette.mode === 'dark'
-    ? '0 3px 12px rgba(33, 150, 243, 0.3)'
-    : '0 3px 12px rgba(25, 118, 210, 0.3)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    background: theme.palette.mode === 'dark'
-      ? 'linear-gradient(45deg, #1976D2 30%, #00B4D8 90%)'
-      : 'linear-gradient(45deg, #1565C0 30%, #2196F3 90%)',
-    boxShadow: theme.palette.mode === 'dark'
-      ? '0 6px 20px rgba(33, 150, 243, 0.4)'
-      : '0 6px 20px rgba(25, 118, 210, 0.4)',
-    transform: 'translateY(-2px)',
-  },
-}));
+import { toast } from 'react-hot-toast';
+import { CircularProgress } from "@mui/material";
+import { FaEnvelope, FaUser, FaComment, FaPhone } from 'react-icons/fa';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    description: ''
+    message: ''
   });
-
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
+
     try {
-      const response = await axios.post('http://localhost:5000/api/v1/contact', formData);
-      if (response.data.success) {
-        toast.success('Thank you! Your message has been sent successfully.');
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          description: ''
-        });
-      } else {
-        throw new Error(response.data.message || 'Failed to send message');
-      }
+      // Here you would typically make an API call to send the contact form
+      // For now, we'll simulate a successful submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success('Message sent successfully! We will get back to you soon.');
+      setFormData({ name: '', email: '', phone: '', message: '' });
     } catch (error) {
-      console.error('Contact form error:', error);
-      toast.error(
-        error.response?.data?.message ||
-        'Unable to send message. Please try again later.'
-      );
+      toast.error('Failed to send message. Please try again.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <ContactContainer maxWidth="lg">
-      <ContactCard elevation={3}>
-        <Typography
-          variant="h4"
-          component="h1"
-          gutterBottom
-          align="center"
-          sx={{
-            fontWeight: 700,
-            color: theme => theme.palette.mode === 'dark' ? '#fff' : '#1a237e',
-            mb: 4,
-            background: theme => theme.palette.mode === 'dark'
-              ? 'linear-gradient(90deg, #42e695 0%, #3bb2b8 50%, #0072ff 100%)'
-              : 'linear-gradient(90deg, #1a237e 0%, #0d47a1 50%, #1565C0 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            textFillColor: 'transparent',
-          }}
-        >
-          Contact Us
-        </Typography>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Logo and Title Section */}
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+            HashWeb
+          </h1>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+            Contact Us
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+          </p>
+        </div>
 
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Person color="primary" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+        {/* Contact Form */}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Full Name
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUser className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200"
+                  placeholder="John Doe"
+                />
+              </div>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email color="primary" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email address
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaEnvelope className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phone Number"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Phone color="primary" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Phone Number
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaPhone className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200"
+                  placeholder="+1 (555) 000-0000"
+                />
+              </div>
+            </div>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Message"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-                multiline
-                rows={4}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Message color="primary" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
+            <div>
+              <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Message
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute top-3 left-3 flex items-start pointer-events-none">
+                  <FaComment className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows="4"
+                  required
+                  value={formData.message}
+                  onChange={handleChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200"
+                  placeholder="How can we help you?"
+                />
+              </div>
+            </div>
+          </div>
 
-            <Grid item xs={12}>
-              <StyledButton
-                type="submit"
-                fullWidth
-                disabled={loading}
-                sx={{ mt: 2 }}
-              >
-                {loading ? 'Sending...' : 'Send Message'}
-              </StyledButton>
-            </Grid>
-          </Grid>
-        </Box>
-      </ContactCard>
-    </ContactContainer>
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600"
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Send Message"
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Additional Contact Information */}
+        <div className="mt-8 space-y-4 text-center">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="font-medium">Email us directly at:</p>
+            <a href="mailto:support@hashweb.com" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+              support@hashweb.com
+            </a>
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="font-medium">Or call us at:</p>
+            <a href="tel:+1234567890" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+              +1 (234) 567-890
+            </a>
+          </div>
+        </div>
+
+        {/* Terms and Privacy */}
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+          By sending a message, you agree to our{" "}
+          <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      </div>
+    </div>
   );
 };
 

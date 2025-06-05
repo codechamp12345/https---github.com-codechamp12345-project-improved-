@@ -50,7 +50,7 @@ export const getTasks = async (req, res) => {
 // Submit a new task
 export const submitTask = async (req, res) => {
   try {
-    const { type, action, link } = req.body;
+    const { type, action, link, description, points } = req.body;
     const userId = req.user._id;
 
     // Normalize link before checking
@@ -83,6 +83,8 @@ export const submitTask = async (req, res) => {
       type,
       action,
       link: normalizedLink,
+      description,
+      points: points || 2,
       addedBy: userId,
       completedBy: [],
       completions: []
@@ -95,6 +97,13 @@ export const submitTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Error submitting task:', error);
+    // Check if error is due to duplicate key
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'A task with this link already exists'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Error submitting task'
@@ -161,21 +170,6 @@ export const completeTask = async (req, res) => {
       });
     }
 
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
-
-      // Add completion record
-    // Check if user is trying to complete their own task
-    if (task.addedBy._id.toString() === userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You cannot complete your own task'
-      });
-    }
-
     // Check if user has already completed this task
     const hasCompleted = task.completions?.some(
       completion => completion.userId.toString() === userId.toString()
@@ -188,94 +182,73 @@ export const completeTask = async (req, res) => {
       });
     }
 
+    // Start a session for the transaction
+    const session = await mongoose.startSession();
+    
     try {
-      // Start a session for the transaction
-      const session = await mongoose.startSession();
-      
-      try {
-        // Start transaction
-        await session.startTransaction();
+      // Start transaction
+      await session.startTransaction();
 
-        // Update task first
-        task.completions = task.completions || [];
-        task.completions.push({
-          userId: userId,
-          completedAt: new Date(),
-          pointsEarned: 2
-        });
-        await task.save({ session });
+      // Update task first
+      task.completions = task.completions || [];
+      task.completions.push({
+        userId: userId,
+        completedAt: new Date(),
+        pointsEarned: task.points // Use actual task points
+      });
+      await task.save({ session });
 
-        // Update user points atomically and get updated user in one operation
-        const updatedUser = await User.findOneAndUpdate(
-          { _id: userId },
-          { 
-            $inc: { points: 2 },
-            $set: { lastPointsUpdate: new Date() }
-          },
-          { new: true, session }
-        ).select('points name email isVerified');
+      // Update user points atomically and get updated user in one operation
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: userId },
+        { 
+          $inc: { points: task.points }, // Use actual task points
+          $set: { lastPointsUpdate: new Date() }
+        },
+        { new: true, session }
+      ).select('points name email isVerified');
 
-        if (!updatedUser) {
-          throw new Error('Failed to update user points');
-        }
-
-        // Commit the transaction
-        await session.commitTransaction();
-
-        // Calculate points earned and new balance
-        const pointsEarned = 2;
-        const newBalance = updatedUser.points;
-        message: 'Task completed successfully. 2 points have been deducted for completing your own task.',
-        // Return success with updated user info and points details
-        res.status(200).json({
-          success: true,
-          message: `Task completed successfully! You earned ${pointsEarned} points.`,
-          userInfo: {
-            _id: updatedUser._id,
-            email: updatedUser.email,
-            name: updatedUser.name,
-            isVerified: updatedUser.isVerified,
-            points: newBalance
-          },
-          pointsEarned,
-          newBalance
-        });
-
-        return;
-      } catch (error) {
-        // If anything fails, abort the transaction
-        await session.abortTransaction();
-        throw error;
-      } finally {
-        // End session
-        await session.endSession();
+      if (!updatedUser) {
+        throw new Error('Failed to update user points');
       }
+
+      // Commit the transaction
+      await session.commitTransaction();
+
+      // Calculate points earned and new balance
+      const pointsEarned = task.points; // Use actual task points
+      const newBalance = updatedUser.points;
+
+      // Return success with updated user info and points details
+      res.status(200).json({
+        success: true,
+        message: `Task completed successfully! You earned ${pointsEarned} points.`,
+        userInfo: {
+          _id: updatedUser._id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          isVerified: updatedUser.isVerified,
+          points: newBalance
+        },
+        pointsEarned,
+        newBalance
+      });
+
+      return;
     } catch (error) {
-      console.error('Transaction error:', error);
-      throw new Error('Failed to complete task: ' + error.message);
+      // If anything fails, abort the transaction
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      // End session
+      await session.endSession();
     }
-    // For completing other users' tasks, add points
-    user.points += 2;
-    res.status(500).json({
-      success: false,
-      message: 'Error completing task'
-    });
-
-    // Add completion record
-    task.completions.push({
-      userId,
-      completedAt: new Date()
-    });
-    await task.save();
-
-    res.json({
-      message: 'Task completed successfully. You earned 2 points!',
-      pointsDeducted: 0,
-      currentPoints: user.points
-    });
   } catch (error) {
     console.error('Error completing task:', error);
-    res.status(500).json({ message: 'Error completing task' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error completing task' 
+    });
   }
 };
 

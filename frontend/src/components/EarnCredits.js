@@ -189,11 +189,25 @@ const EarnCredits = ({ toggleTheme }) => {
 
   // Handle points change
   const handlePointsChange = (e) => {
-    const value = Math.max(1, parseInt(e.target.value) || 2);
-    setTaskForm({
-      ...taskForm,
-      points: value
-    });
+    const value = e.target.value;
+    
+    // Allow empty value for backspace
+    if (value === '') {
+      setTaskForm({
+        ...taskForm,
+        points: ''
+      });
+      return;
+    }
+
+    // Convert to number and validate
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      setTaskForm({
+        ...taskForm,
+        points: Math.max(1, numValue)
+      });
+    }
   };
 
   // Validate URL based on platform
@@ -225,6 +239,51 @@ const EarnCredits = ({ toggleTheme }) => {
     });
   };
 
+  // Effect to handle points synchronization
+  useEffect(() => {
+    if (!userInfo) return;
+
+    const syncPoints = () => {
+      const currentPoints = Number(userInfo.points);
+      const storedUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
+      const storedPoints = Number(storedUser.points);
+
+      // If points are different, use the higher value
+      if (!isNaN(currentPoints) && !isNaN(storedPoints) && currentPoints !== storedPoints) {
+        const finalPoints = Math.max(currentPoints, storedPoints);
+        const updatedInfo = {
+          ...userInfo,
+          points: finalPoints
+        };
+
+        // Update both Redux and localStorage atomically
+        dispatch(setCredentials(updatedInfo));
+        localStorage.setItem('userInfo', JSON.stringify(updatedInfo));
+      }
+    };
+
+    // Initial sync
+    syncPoints();
+
+    // Listen for points updates from other components
+    const handlePointsUpdate = (e) => {
+      if (e.detail?.timestamp) {
+        syncPoints();
+      }
+    };
+    
+    window.addEventListener('pointsUpdated', handlePointsUpdate);
+    return () => window.removeEventListener('pointsUpdated', handlePointsUpdate);
+  }, [userInfo, dispatch]);
+
+  // Listener for points updates from localStorage (assuming this is for real-time updates)
+  useEffect(() => {
+    if (userInfo?.points !== undefined) {
+      setLocalPoints(Number(userInfo.points));
+    }
+  }, [userInfo?.points]);
+
+  // Handle task submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -242,6 +301,7 @@ const EarnCredits = ({ toggleTheme }) => {
     // Check for duplicate link
     if (isDuplicateLink(taskForm.link)) {
       toast.error('This link has already been added as a task');
+      setTaskForm(prev => ({ ...prev, link: '' }));
       return;
     }
 
@@ -259,16 +319,17 @@ const EarnCredits = ({ toggleTheme }) => {
           points: 2
         });
         refetch();
-      } else {
-        toast.error(result.message || 'Failed to submit task');
       }
     } catch (err) {
-      const errorMsg = err?.data?.message || 'Failed to submit task';
-      toast.error(errorMsg);
-      
-      // If error is due to duplicate link, clear the link field
-      if (errorMsg.includes('already exists')) {
+      // Handle specific error cases
+      if (err?.data?.message?.includes('already exists')) {
+        toast.error('A task with this link already exists');
         setTaskForm(prev => ({ ...prev, link: '' }));
+      } else if (err?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        navigate('/login');
+      } else {
+        toast.error(err?.data?.message || 'Failed to submit task. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -290,51 +351,6 @@ const EarnCredits = ({ toggleTheme }) => {
 
     setSelectedTask(task);
   };
-
-  // Effect to handle points synchronization
-  useEffect(() => {
-    if (!userInfo) return;
-
-    const syncPoints = () => {
-      const currentPoints = Number(userInfo.points);
-      const storedUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      const storedPoints = Number(storedUser.points);
-
-      // If points are different, use the higher value
-      if (!isNaN(currentPoints) && !isNaN(storedPoints) && currentPoints !== storedPoints) {
-        const finalPoints = Math.max(currentPoints, storedPoints);
-        const updatedInfo = {
-          ...userInfo,
-          points: finalPoints
-        };
-
-        // Update both Redux and localStorage atomically
-        dispatch(setCredentials(updatedInfo));
-        localStorage.setItem('userInfo', JSON.stringify(updatedInfo));
-
-        // Dispatch a custom event to notify other components
-        window.dispatchEvent(new CustomEvent('pointsUpdated', {
-          detail: { points: finalPoints }
-        }));
-      }
-    };
-
-    // Initial sync
-    syncPoints();
-
-    // Listen for points updates from other components
-    const handlePointsUpdate = (e) => syncPoints();
-    window.addEventListener('pointsUpdated', handlePointsUpdate);
-
-    return () => window.removeEventListener('pointsUpdated', handlePointsUpdate);
-  }, [userInfo, dispatch]);
-
-  // Listener for points updates from localStorage (assuming this is for real-time updates)
-  useEffect(() => {
-    if (userInfo?.points !== undefined) {
-      setLocalPoints(Number(userInfo.points));
-    }
-  }, [userInfo?.points]);
 
   // Handle task confirmation
   const handleConfirmTask = async () => {
@@ -359,7 +375,7 @@ const EarnCredits = ({ toggleTheme }) => {
 
       // Calculate points for instant update
       const currentBalance = Number(userInfo.points) || 0;
-      const pointsToAdd = 2; // Fixed points per task
+      const pointsToAdd = selectedTask.points || 0; // Use actual task points
       const newBalance = currentBalance + pointsToAdd;
 
       // Update UI immediately
@@ -397,50 +413,13 @@ const EarnCredits = ({ toggleTheme }) => {
         return;
       }
 
-      // Show styled success toast
-      toast.custom((t) => (
-        <div className="fixed inset-x-0 top-4 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4 border-l-4 border-green-500 transform transition-all duration-300 hover:scale-105">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div className="bg-green-100 rounded-full p-3">
-                  <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-lg font-medium text-gray-900">
-                  Task Completed!
-                </p>
-                <p className="text-base text-gray-600">
-                  You've earned <span className="font-semibold text-[#0077b6]">2 points</span> for completing this task!
-                </p>
-              </div>
-              <div className="flex-shrink-0">
-                <button
-                  onClick={() => toast.dismiss(t)}
-                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ), {
-        duration: 3000,
-        position: 'top-center'
-      });
-
+      // Show success message with actual points earned
+      toast.success(`Task completed successfully! You earned ${pointsToAdd} points!`);
+      
       if (result.pointsDeducted > 0) {
         setPointsDeducted(result.pointsDeducted);
         setCurrentPoints(result.currentPoints);
         setShowPointsDeducted(true);
-      } else {
-        toast.success(result.message);
       }
       
       refetch(); // Refresh tasks list

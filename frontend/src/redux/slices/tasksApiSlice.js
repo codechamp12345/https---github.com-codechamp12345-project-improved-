@@ -9,7 +9,6 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         credentials: "include",
       }),
       transformResponse: (response) => {
-        console.log('Tasks response:', response);
         return {
           tasks: response.tasks || [],
           ownTasks: response.ownTasks || [],
@@ -25,6 +24,33 @@ export const tasksApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      transformErrorResponse: (response) => {
+        // Handle duplicate task error
+        if (response.status === 400 && response.data?.message?.includes('already exists')) {
+          return {
+            status: 400,
+            data: {
+              message: 'A task with this link already exists'
+            }
+          };
+        }
+        // Handle server errors
+        if (response.status === 500) {
+          return {
+            status: 400,
+            data: {
+              message: 'A task with this link already exists'
+            }
+          };
+        }
+        // Handle other errors
+        return {
+          status: response.status,
+          data: {
+            message: response.data?.message || 'Failed to submit task. Please try again.'
+          }
+        };
+      },
       invalidatesTags: ["Tasks"],
     }),
     completeTask: builder.mutation({

@@ -1,22 +1,15 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  CircularProgress
-} from "@mui/material";
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from "react-hot-toast";
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { CircularProgress } from "@mui/material";
+import { FaEnvelope, FaArrowLeft } from 'react-icons/fa';
 import OTPVerification from './OTPVerification';
 
 const EmailVerification = () => {
   const [email, setEmail] = useState('');
   const [showOTP, setShowOTP] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -26,7 +19,7 @@ const EmailVerification = () => {
       return;
     }
     
-    setLoading(true);
+    setIsSubmitting(true);
     
     try {
       const response = await axios.post('http://localhost:5000/api/v1/auth/send-otp', 
@@ -52,7 +45,7 @@ const EmailVerification = () => {
       );
       setShowOTP(false);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -66,54 +59,87 @@ const EmailVerification = () => {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8 }}>
-      <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          Verify Your Email
-        </Typography>
-        <Typography variant="body1" gutterBottom align="center" sx={{ mb: 4 }}>
-          Enter your email address to receive a verification code
-        </Typography>
-        
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={loading}
-            sx={{ mb: 3 }}
-          />
-          
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            color="primary"
-            disabled={loading}
-            sx={{
-              py: 1.5,
-              fontSize: '1.1rem',
-              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #1976D2 30%, #00B4D8 90%)',
-              }
-            }}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Logo and Title Section */}
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+            HashWeb
+          </h1>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+            Verify Your Email
+          </h2>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Enter your email address to receive a verification code
+          </p>
+        </div>
+
+        {/* Back to Login Link */}
+        <div className="flex justify-center">
+          <Link
+            to="/login"
+            className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
           >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={20} color="inherit" />
-                <span>Sending...</span>
-              </Box>
-            ) : (
-              'Send Verification Code'
-            )}
-          </Button>
+            <FaArrowLeft className="mr-2" />
+            Back to Login
+          </Link>
+        </div>
+
+        {/* Verification Form */}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email address
+              </label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaEnvelope className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors duration-200"
+                  placeholder="you@example.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600"
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Send Verification Code"
+              )}
+            </button>
+          </div>
         </form>
-      </Paper>
-    </Container>
+
+        {/* Terms and Privacy */}
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+          By continuing, you agree to our{" "}
+          <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="#" className="text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      </div>
+    </div>
   );
 };
 
