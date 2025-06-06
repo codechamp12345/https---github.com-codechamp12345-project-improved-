@@ -25,6 +25,11 @@ const AdminNavbar = () => {
     return location.pathname === path;
   };
 
+  // Only show navigation items if admin is logged in
+  if (!adminInfo) {
+    return null;
+  }
+
   return (
     <nav className="bg-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

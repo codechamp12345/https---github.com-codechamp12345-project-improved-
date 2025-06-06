@@ -16,11 +16,11 @@ import AboutUs from "./components/AboutUs";
 import AdminLogin from "./components/admin/AdminLogin";
 import AdminNavbar from "./components/admin/AdminNavbar";
 import AdminDashboard from "./components/admin/AdminDashboard";
-import AdminContacts from "./components/admin/AdminContacts";
 import AdminTasks from "./components/admin/AdminTasks";
 import BuyPointsPage from "./pages/BuyPointsPage";
 import { useSelector } from 'react-redux';
 import ProtectedRoute from './components/admin/ProtectedRoute';
+import Dashboard from './components/Dashboard';
 
 const getDesignTokens = (mode) => ({
   palette: {
@@ -39,6 +39,10 @@ const getDesignTokens = (mode) => ({
       default: mode === "dark" ? "#121212" : "#ffffff",
       paper: mode === "dark" ? "#1e1e1e" : "#ffffff",
     },
+    text: {
+      primary: mode === "dark" ? "#ffffff" : "#000000",
+      secondary: mode === "dark" ? "#b0b0b0" : "#666666",
+    },
   },
   typography: {
     fontFamily: "Arial, sans-serif",
@@ -51,6 +55,8 @@ const getDesignTokens = (mode) => ({
       styleOverrides: {
         body: {
           transition: "background-color 0.3s ease",
+          backgroundColor: mode === "dark" ? "#121212" : "#ffffff",
+          color: mode === "dark" ? "#ffffff" : "#000000",
         },
       },
     },
@@ -95,74 +101,117 @@ const DarkModeOverlay = styled(Box)(({ theme }) => ({
 }));
 
 function AppContent() {
-  const [mode, setMode] = useState("light");
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const location = useLocation();
-  const { adminInfo } = useSelector((state) => state.admin);
+  const { userInfo } = useSelector((state) => state.auth);
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const [mode, setMode] = useState(() => {
+    const savedMode = localStorage.getItem('themeMode');
+    return savedMode || 'light';
+  });
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const theme = React.useMemo(() => createTheme(getDesignTokens(mode)), [mode]);
 
   const toggleTheme = () => {
-    setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+    const newMode = mode === 'light' ? 'dark' : 'light';
+    setMode(newMode);
+    localStorage.setItem('themeMode', newMode);
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setCursorPos({ x: e.clientX, y: e.clientY });
-      document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
-      document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
-    };
+    if (!isAdminRoute) {
+      const handleMouseMove = (e) => {
+        setCursorPos({ x: e.clientX, y: e.clientY });
+        document.documentElement.style.setProperty("--mouse-x", `${e.clientX}px`);
+        document.documentElement.style.setProperty("--mouse-y", `${e.clientY}px`);
+      };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  const isAdminRoute = location.pathname.startsWith('/admin');
+      window.addEventListener("mousemove", handleMouseMove);
+      return () => window.removeEventListener("mousemove", handleMouseMove);
+    }
+  }, [isAdminRoute]);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: "100vh" }}>
+      <Box sx={{ 
+        minHeight: "100vh", 
+        display: "flex", 
+        flexDirection: "column",
+        bgcolor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+        transition: "background-color 0.3s ease, color 0.3s ease"
+      }}>
         <ToastContainer position="top-right" autoClose={3000} />
         {isAdminRoute ? <AdminNavbar /> : <Navbar toggleTheme={toggleTheme} />}
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/earn-credits" element={<EarnCredits />} />
-          <Route path="/buy-points" element={<BuyPointsPage />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/verify-email" element={<EmailVerification />} />
-          <Route path="/about" element={<AboutUs />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin" element={<Navigate to="/admin/dashboard" />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/tasks"
-            element={
-              <ProtectedRoute>
-                <AdminTasks />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <Cursor
-          style={{
-            left: `${cursorPos.x}px`,
-            top: `${cursorPos.y}px`,
-            opacity: mode === "dark" ? 1 : 0,
-          }}
-        />
-        <DarkModeOverlay />
+        <Box sx={{ 
+          flex: 1, 
+          display: "flex", 
+          flexDirection: "column",
+          bgcolor: theme.palette.background.default,
+          color: theme.palette.text.primary,
+          transition: "background-color 0.3s ease, color 0.3s ease"
+        }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/earn-credits" element={<EarnCredits />} />
+            <Route path="/buy-points" element={<BuyPointsPage />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/verify-email" element={<EmailVerification />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/dashboard" element={userInfo ? <Dashboard /> : <Navigate to="/login" />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={<Navigate to="/admin/dashboard" />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: "flex", 
+                    flexDirection: "column",
+                    bgcolor: theme.palette.background.default,
+                    color: theme.palette.text.primary
+                  }}>
+                    <AdminDashboard />
+                  </Box>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/tasks"
+              element={
+                <ProtectedRoute>
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: "flex", 
+                    flexDirection: "column",
+                    bgcolor: theme.palette.background.default,
+                    color: theme.palette.text.primary
+                  }}>
+                    <AdminTasks />
+                  </Box>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Box>
+        {!isAdminRoute && (
+          <>
+            <Cursor
+              style={{
+                left: `${cursorPos.x}px`,
+                top: `${cursorPos.y}px`,
+                opacity: mode === "dark" ? 1 : 0,
+              }}
+            />
+            <DarkModeOverlay />
+          </>
+        )}
         {!isAdminRoute && <Footer />}
       </Box>
     </ThemeProvider>

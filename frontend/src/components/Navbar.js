@@ -247,23 +247,17 @@ const Navbar = ({ toggleTheme }) => {
     const handlePointsUpdate = (event) => {
       const newPoints = Number(event.detail.points);
       if (!isNaN(newPoints)) {
-        // Update local state
         setLocalPoints(newPoints);
-        
-        // Update Redux
         const updatedUser = {
           ...userInfo,
           points: newPoints
         };
         dispatch(setCredentials(updatedUser));
-
-        // Update localStorage
         localStorage.setItem('userInfo', JSON.stringify(updatedUser));
       }
     };
 
     const handleForceUpdate = () => {
-      // Force re-read from localStorage
       const storedUser = JSON.parse(localStorage.getItem('userInfo') || '{}');
       const storedPoints = Number(storedUser.points);
       if (!isNaN(storedPoints)) {
@@ -295,67 +289,48 @@ const Navbar = ({ toggleTheme }) => {
 
   const handleLogout = async () => {
     try {
-      // First dispatch logout to clear Redux state
       dispatch(logout());
-      // Clear local storage immediately
       localStorage.removeItem('userInfo');
       localStorage.removeItem('verificationEmail');
-      // Clear any cookies
       document.cookie.split(";").forEach((c) => {
         document.cookie = c
           .replace(/^ +/, "")
           .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       });
-      // Close any open menus
       handleProfileMenuClose();
-      // Navigate to home page
       navigate("/");
-      // Show success message
       toast.success('Logged Out Successfully');
-      // Then make the API call
       await logoutApiCall().unwrap();
     } catch (err) {
       console.error(err);
-      // Even if the API call fails, we've already logged out locally
       toast.success('Logged Out Successfully');
     }
   };
 
-  const navItems = [
-    { text: "Home", path: "/", icon: <Home /> },
-    { text: "About", path: "/about", icon: <Info /> },
-    userInfo && { text: "Earn Credits", path: "/earn-credits", icon: <CreditScore /> },
-    userInfo && { text: "Buy Points", path: "/buy-points", icon: <ShoppingCart /> },
-    !userInfo && { text: "Login", path: "/login", icon: <Login /> },
-    !userInfo && { text: "Register", path: "/register", icon: <PersonAdd /> },
-  ].filter(Boolean);
+  const pages = userInfo
+    ? [
+        { name: 'Dashboard', path: '/dashboard', icon: <Home /> },
+        { name: 'Earn Credits', path: '/earn-credits', icon: <CreditScore /> },
+        { name: 'Buy Points', path: '/buy-points', icon: <ShoppingCart /> },
+      ]
+    : [
+        { name: 'Home', path: '/', icon: <Home /> },
+        { name: 'About', path: '/about', icon: <Info /> },
+        { name: 'Contact', path: '/contact', icon: <Info /> },
+      ];
 
-  const profileItems = userInfo ? [
-    {
-      text: userInfo.name || 'User',
-      icon: <AccountCircle />,
-      action: null
-    },
-    {
-      text: `Points: ${localPoints}`,
-      icon: <Star />,
-      action: null,
-      style: { color: '#FFD700' } // Gold color for points
-    },
-    {
-      text: "Buy Points",
-      icon: <ShoppingCart />,
-      action: () => {
-        navigate('/buy-points');
-        handleProfileMenuClose();
-      }
-    },
-    {
-      text: "Logout",
-      icon: <Logout />,
-      action: handleLogout
-    }
-  ] : [];
+  const settings = [
+    // { name: 'Profile', action: () => navigate('/profile'), icon: <AccountCircle /> }, // Removed as per request
+    { name: 'Logout', action: handleLogout, icon: <Logout /> },
+  ];
+
+  const navItems = pages.map((item) => ({
+    text: item.name,
+    path: item.path,
+    icon: item.icon,
+  }));
+
+  const profileItems = userInfo ? settings : [];
 
   const drawer = (
     <Box sx={{ textAlign: "center" }}>
@@ -367,7 +342,10 @@ const Navbar = ({ toggleTheme }) => {
           p: 2,
         }}
       >
-        <LogoContainer component={Link} to="/" onClick={handleDrawerToggle}>
+        <LogoContainer 
+          component={Link} 
+          to={userInfo ? "/dashboard" : "/"}
+        >
           <img src="/logo.svg" alt="BrandHash Logo" />
           <Typography
             variant="h6"
@@ -416,7 +394,7 @@ const Navbar = ({ toggleTheme }) => {
             {profileItems.map((item) => (
               <ListItem
                 button
-                key={item.text}
+                key={item.name}
                 onClick={item.action || handleDrawerToggle}
                 sx={{
                   borderRadius: 2,
@@ -430,7 +408,7 @@ const Navbar = ({ toggleTheme }) => {
                 }}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
+                <ListItemText primary={item.name} />
               </ListItem>
             ))}
           </>
@@ -443,15 +421,14 @@ const Navbar = ({ toggleTheme }) => {
     <>
       <StyledAppBar position="fixed">
         <Toolbar>
-          <LogoContainer component={Link} to="/">
+          <LogoContainer 
+            component={Link} 
+            to={userInfo ? "/dashboard" : "/"}
+          >
             <img src="/logo.svg" alt="BrandHash Logo" />
             <Typography
               variant="h6"
-              sx={{
-                fontWeight: "bold",
-                color: "#FFD700",
-                textDecoration: "none",
-              }}
+              sx={{ fontWeight: "bold", color: "#FFD700" }}
             >
               BrandHash
             </Typography>
@@ -472,7 +449,7 @@ const Navbar = ({ toggleTheme }) => {
                   {item.text}
                 </NavButton>
               ))}
-              {userInfo && (
+              {userInfo ? (
                 <>
                   <IconButton
                     color="inherit"
@@ -494,17 +471,51 @@ const Navbar = ({ toggleTheme }) => {
                       horizontal: "right",
                     }}
                   >
+                    {userInfo && (
+                      <Box sx={{
+                        p: 2,
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 50, 60, 0.95)' : 'rgba(50, 97, 112, 0.95)',
+                      }}>
+                        <Typography variant="subtitle1" component="div" sx={{ fontWeight: 'bold', color: 'inherit' }}>
+                          {userInfo.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.75 }}>
+                          <Star sx={{ fontSize: '1.2rem', color: '#FFD700', mr: 0.75 }} />
+                          <Typography variant="body1" component="div" sx={{ color: 'inherit', opacity: 0.9 }}>
+                            {localPoints} Points
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
                     {profileItems.map((item) => (
                       <MenuItem
-                        key={item.text}
+                        key={item.name}
                         onClick={item.action || handleProfileMenuClose}
                       >
                         <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.text} />
+                        <ListItemText primary={item.name} />
                       </MenuItem>
                     ))}
                   </StyledMenu>
                 </>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                  <NavButton
+                    component={Link}
+                    to="/login"
+                    startIcon={<Login />}
+                  >
+                    Login
+                  </NavButton>
+                  <NavButton
+                    component={Link}
+                    to="/register"
+                    startIcon={<PersonAdd />}
+                  >
+                    Register
+                  </NavButton>
+                </Box>
               )}
             </Box>
           )}
