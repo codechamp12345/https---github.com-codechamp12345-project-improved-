@@ -21,7 +21,8 @@ app.use(cookieParser());
 // CORS setup
 const allowedOrigins = [
   "http://localhost:3000",               // local dev frontend
-  "https://hashweb-project-u53z.vercel.app"  // your deployed frontend
+  "https://hashweb-project-u53z.vercel.app",  // your deployed frontend
+  "https://backend-hash.onrender.com"    // your new backend URL
 ];
 
 app.use(cors({
